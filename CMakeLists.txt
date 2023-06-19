@@ -66,3 +66,8 @@ add_hpx_executable(lulesh2.0_for_loop_fork_join
     SOURCES 
     ${LULESH_SOURCES} lulesh_for_loop_fork_join.cc
 )
+add_hpx_executable(lulesh2.0_for_loop_fork_join_2
+    ESSENTIAL
+    SOURCES 
+    ${LULESH_SOURCES} lulesh_for_loop_fork_join_2.cc
+)
