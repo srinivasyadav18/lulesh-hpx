@@ -926,11 +926,10 @@ static inline void CalcHourglassControlForElems(Domain &domain, Real_t determ[],
                     }
 
                     determ[i] = domain.volo(i) * domain.v(i);
+                    if ( domain.v(i) <= Real_t(0.0) ) {
+                      exit(VolumeError);
+                    }
                   });
-  if (hpx::any_of(hpx::execution::par, domain.v_begin(), domain.v_end(),
-                  [](Real_t v) { return v < Real_t(0.0); })) {
-    exit(VolumeError);
-  }
 
   if (hgcoef > Real_t(0.)) {
     CalcFBHourglassForceForElems(domain, determ, x8n, y8n, z8n, dvdx, dvdy,
@@ -967,10 +966,13 @@ static inline void CalcVolumeForceForElems(Domain &domain) {
                             domain.numNode());
 
     // check for negative element volume
-    if (hpx::any_of(hpx::execution::par, determ, determ + numElem,
-                    [](Real_t value) { return value <= Real_t(0.0); })) {
-      exit(VolumeError);
-    }
+    hpx::experimental::for_loop(hpx::execution::par.on(*fj_exec), (0), numElem,
+                    [&](Index_t k) {
+         if (determ[k] <= Real_t(0.0)) {
+            exit(VolumeError);
+         }
+    });
+
 
     CalcHourglassControlForElems(domain, determ, hgcoef);
 
@@ -1012,15 +1014,6 @@ static inline void CalcAccelerationForNodes(Domain &domain, Index_t numNode) {
         domain.ydd(i) = domain.fy(i) / domain.nodalMass(i);
         domain.zdd(i) = domain.fz(i) / domain.nodalMass(i);
     });
-  // hpx::transform(hpx::execution::par.on(*fj_exec), domain.fx_begin(), domain.fx_end(),
-  //                domain.nodalMass_begin(), domain.xdd_begin(),
-  //                [](Real_t fx, Real_t nodalMass) { return fx / nodalMass; });
-  // hpx::transform(hpx::execution::par.on(*fj_exec), domain.fy_begin(), domain.fy_end(),
-  //                domain.nodalMass_begin(), domain.ydd_begin(),
-  //                [](Real_t fy, Real_t nodalMass) { return fy / nodalMass; });
-  // hpx::transform(hpx::execution::par.on(*fj_exec), domain.fz_begin(), domain.fz_end(),
-  //                domain.nodalMass_begin(), domain.zdd_begin(),
-  //                [](Real_t fz, Real_t nodalMass) { return fz / nodalMass; });
 }
 
 /******************************************/
@@ -1069,30 +1062,6 @@ static inline void CalcVelocityForNodes(Domain &domain, const Real_t dt,
      if( FABS(zdtmp) < u_cut ) zdtmp = Real_t(0.0);
      domain.zd(i) = zdtmp ;                 
   });
-  // hpx::transform(hpx::execution::par.on(*fj_exec), domain.xd_begin(), domain.xd_end(),
-  //                domain.xdd_begin(), domain.xd_begin(),
-  //                [&](Real_t xd, Real_t xdd) {
-  //                  Real_t xdnew = xd + xdd * dt;
-  //                  if (std::abs(xdnew) < u_cut)
-  //                    xdnew = Real_t(0.0);
-  //                  return xdnew;
-  //                });
-  // hpx::transform(hpx::execution::par.on(*fj_exec), domain.yd_begin(), domain.yd_end(),
-  //                domain.ydd_begin(), domain.yd_begin(),
-  //                [&](Real_t yd, Real_t ydd) {
-  //                  Real_t ydnew = yd + ydd * dt;
-  //                  if (std::abs(ydnew) < u_cut)
-  //                    ydnew = Real_t(0.0);
-  //                  return ydnew;
-  //                });
-  // hpx::transform(hpx::execution::par.on(*fj_exec), domain.zd_begin(), domain.zd_end(),
-  //                domain.zdd_begin(), domain.zd_begin(),
-  //                [&](Real_t zd, Real_t zdd) {
-  //                  Real_t zdnew = zd + zdd * dt;
-  //                  if (std::abs(zdnew) < u_cut)
-  //                    zdnew = Real_t(0.0);
-  //                  return zdnew;
-  //                });
 }
 
 /******************************************/
@@ -1106,15 +1075,6 @@ static inline void CalcPositionForNodes(Domain &domain, const Real_t dt,
         domain.y(i) += domain.yd(i) * dt ;
         domain.z(i) += domain.zd(i) * dt ;           
     });
-  // hpx::transform(hpx::execution::par.on(*fj_exec), domain.x_begin(), domain.x_end(),
-  //                domain.xd_begin(), domain.x_begin(),
-  //                [&](Real_t x, Real_t xd) { return x + xd * dt; });
-  // hpx::transform(hpx::execution::par.on(*fj_exec), domain.y_begin(), domain.y_end(),
-  //                domain.yd_begin(), domain.y_begin(),
-  //                [&](Real_t y, Real_t yd) { return y + yd * dt; });
-  // hpx::transform(hpx::execution::par.on(*fj_exec), domain.z_begin(), domain.z_end(),
-  //                domain.zd_begin(), domain.z_begin(),
-  //                [&](Real_t z, Real_t zd) { return z + zd * dt; });
 }
 
 /******************************************/
@@ -1423,12 +1383,13 @@ static inline void CalcLagrangeElements(Domain &domain) {
                       domain.dxx(k) -= vdovthird;
                       domain.dyy(k) -= vdovthird;
                       domain.dzz(k) -= vdovthird;
-                    });
-    // See if any volumes are negative, and take appropriate action.
-    if (hpx::any_of(hpx::execution::par, domain.vnew_begin(), domain.vnew_end(),
-                    [](Real_t vnew) { return vnew <= Real_t(0.0); })) {
-      exit(VolumeError);
-    }
+                      // See if any volumes are negative, and take appropriate action.
+                      if (domain.vnew(k) <= Real_t(0.0))
+                      {
+                        exit(VolumeError);
+                      }
+    });
+
     domain.DeallocateStrains();
   }
 }
@@ -1439,7 +1400,7 @@ static inline void CalcMonotonicQGradientsForElems(Domain &domain) {
   Index_t numElem = domain.numElem();
 
   hpx::experimental::for_loop(
-      hpx::execution::par, (0), numElem, [&domain](Index_t i) {
+      hpx::execution::par.on(*fj_exec), (0), numElem, [&domain](Index_t i) {
         const Real_t ptiny = Real_t(1.e-36);
         Real_t ax, ay, az;
         Real_t dxv, dyv, dzv;
@@ -1870,15 +1831,17 @@ static inline void CalcPressureForElems(Real_t *p_new, Real_t *bvc,
                                         Real_t pmin, Real_t p_cut,
                                         Real_t eosvmax, Index_t length,
                                         Index_t *regElemList) {
-  constexpr Real_t cls = Real_t(2.0) / Real_t(3.0);
-  hpx::transform(hpx::execution::par.on(*fj_exec), compression, compression + length, bvc,
-                 [&](Real_t compression_i) {
-                   return cls * (compression_i + Real_t(1.0));
-                 });
-  hpx::fill(hpx::execution::par.on(*fj_exec), pbvc, pbvc + length, cls);
+  constexpr Real_t c1s = Real_t(2.0) / Real_t(3.0);
+  // hpx::transform(hpx::execution::par.on(*fj_exec), compression, compression + length, bvc,
+  //                [&](Real_t compression_i) {
+  //                  return cls * (compression_i + Real_t(1.0));
+  //                });
+  // hpx::fill(hpx::execution::par.on(*fj_exec), pbvc, pbvc + length, cls);
 
   hpx::experimental::for_loop(
       hpx::execution::par.on(*fj_exec), (0), length, [&](Index_t i) {
+        bvc[i] = c1s * (compression[i] + Real_t(1.));
+        pbvc[i] = c1s;
         Real_t newval = bvc[i] * e_old[i];
         if (std::fabs(newval) < p_cut || vnewc[regElemList[i]] >= eosvmax) {
           newval = Real_t(0.0);
@@ -2184,18 +2147,21 @@ static inline void ApplyMaterialPropertiesForElems(Domain &domain) {
     // This check may not make perfect sense in LULESH, but
     // it's representative of something in the full code -
     // just leave it in, please
-    if (hpx::any_of(hpx::execution::par, domain.v_begin(), domain.v_end(),
-                    [&](Real_t vc) {
-                      if (eosvmin != Real_t(0.0) && vc < eosvmin) {
-                        vc = eosvmin;
-                      }
-                      if (eosvmax != Real_t(0.0) && vc > eosvmax) {
-                        vc = eosvmax;
-                      }
-                      return vc < 0.0;
-                    })) {
-      exit(VolumeError);
-    }
+      hpx::experimental::for_loop(hpx::execution::par.on(*fj_exec), (0), numElem,
+                      [&](Index_t i) {
+          Real_t vc = domain.v(i) ;
+          if (eosvmin != Real_t(0.)) {
+             if (vc < eosvmin)
+                vc = eosvmin ;
+          }
+          if (eosvmax != Real_t(0.)) {
+             if (vc > eosvmax)
+                vc = eosvmax ;
+          }
+          if (vc <= 0.) {
+             exit(VolumeError);
+          }
+      });
 
     for (Int_t r = 0; r < domain.numReg(); r++) {
       Index_t numElemReg = domain.regElemSize(r);
@@ -2317,6 +2283,7 @@ static inline void LagrangeLeapFrog(Domain &domain) {
 #ifdef SEDOV_SYNC_POS_VEL_LATE
   Domain_member fieldData[6];
 #endif
+  fj_exec = new hpx::execution::experimental::fork_join_executor{};
 
   /* calculate nodal forces, accelerations, velocities, positions, with
    * applied boundary conditions and slide surface considerations */
@@ -2329,14 +2296,13 @@ static inline void LagrangeLeapFrog(Domain &domain) {
    * material states */
   LagrangeElements(domain, domain.numElem());
 
+delete fj_exec;
   CalcTimeConstraintsForElems(domain);
 }
 
 /******************************************/
 
 int hpx_main(int argc, char *argv[]) {
-
-  fj_exec = new hpx::execution::experimental::fork_join_executor{};
 
   Domain *locDom;
   int numRanks;
@@ -2429,7 +2395,7 @@ int hpx_main(int argc, char *argv[]) {
 
      std::cout << "#Benchmark " << ((Int8_t)numRanks * opts.nx * opts.nx * opts.nx) << " " << hpx::get_num_worker_threads() << " " << elapsed_time << '\n';
   delete locDom;
-  delete fj_exec;
+  // delete fj_exec;
   
   return hpx::local::finalize();
 }
@@ -2443,3 +2409,4 @@ int main(int argc, char* argv[])
     // wait for hpx::finalize being called.
     return hpx::local::init(hpx_main, argc, argv, init_args);
 }
+
