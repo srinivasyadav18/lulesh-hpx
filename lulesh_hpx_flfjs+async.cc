@@ -584,34 +584,38 @@ static inline void VoluDer(const Real_t x0, const Real_t x1, const Real_t x2,
 
 /******************************************/
 
-static inline void CalcElemVolumeDerivative(Real_t dvdx[8], Real_t dvdy[8],
+static inline auto CalcElemVolumeDerivative(Real_t dvdx[8], Real_t dvdy[8],
                                             Real_t dvdz[8], const Real_t x[8],
                                             const Real_t y[8],
                                             const Real_t z[8]) {
-  VoluDer(x[1], x[2], x[3], x[4], x[5], x[7], y[1], y[2], y[3], y[4], y[5],
+
+  std::vector<hpx::future<void>> futures;
+  futures.reserve(8);                                    
+  futures.push_back(hpx::async(VoluDer, x[1], x[2], x[3], x[4], x[5], x[7], y[1], y[2], y[3], y[4], y[5],
           y[7], z[1], z[2], z[3], z[4], z[5], z[7], &dvdx[0], &dvdy[0],
-          &dvdz[0]);
-  VoluDer(x[0], x[1], x[2], x[7], x[4], x[6], y[0], y[1], y[2], y[7], y[4],
+          &dvdz[0]));
+  futures.push_back(hpx::async(VoluDer, x[0], x[1], x[2], x[7], x[4], x[6], y[0], y[1], y[2], y[7], y[4],
           y[6], z[0], z[1], z[2], z[7], z[4], z[6], &dvdx[3], &dvdy[3],
-          &dvdz[3]);
-  VoluDer(x[3], x[0], x[1], x[6], x[7], x[5], y[3], y[0], y[1], y[6], y[7],
+          &dvdz[3]));
+  futures.push_back(hpx::async(VoluDer, x[3], x[0], x[1], x[6], x[7], x[5], y[3], y[0], y[1], y[6], y[7],
           y[5], z[3], z[0], z[1], z[6], z[7], z[5], &dvdx[2], &dvdy[2],
-          &dvdz[2]);
-  VoluDer(x[2], x[3], x[0], x[5], x[6], x[4], y[2], y[3], y[0], y[5], y[6],
+          &dvdz[2]));
+  futures.push_back(hpx::async(VoluDer, x[2], x[3], x[0], x[5], x[6], x[4], y[2], y[3], y[0], y[5], y[6],
           y[4], z[2], z[3], z[0], z[5], z[6], z[4], &dvdx[1], &dvdy[1],
-          &dvdz[1]);
-  VoluDer(x[7], x[6], x[5], x[0], x[3], x[1], y[7], y[6], y[5], y[0], y[3],
+          &dvdz[1]));
+  futures.push_back(hpx::async(VoluDer, x[7], x[6], x[5], x[0], x[3], x[1], y[7], y[6], y[5], y[0], y[3],
           y[1], z[7], z[6], z[5], z[0], z[3], z[1], &dvdx[4], &dvdy[4],
-          &dvdz[4]);
-  VoluDer(x[4], x[7], x[6], x[1], x[0], x[2], y[4], y[7], y[6], y[1], y[0],
+          &dvdz[4]));
+  futures.push_back(hpx::async(VoluDer, x[4], x[7], x[6], x[1], x[0], x[2], y[4], y[7], y[6], y[1], y[0],
           y[2], z[4], z[7], z[6], z[1], z[0], z[2], &dvdx[5], &dvdy[5],
-          &dvdz[5]);
-  VoluDer(x[5], x[4], x[7], x[2], x[1], x[3], y[5], y[4], y[7], y[2], y[1],
+          &dvdz[5]));
+  futures.push_back(hpx::async(VoluDer, x[5], x[4], x[7], x[2], x[1], x[3], y[5], y[4], y[7], y[2], y[1],
           y[3], z[5], z[4], z[7], z[2], z[1], z[3], &dvdx[6], &dvdy[6],
-          &dvdz[6]);
-  VoluDer(x[6], x[5], x[4], x[3], x[2], x[0], y[6], y[5], y[4], y[3], y[2],
+          &dvdz[6]));
+  futures.push_back(hpx::async(VoluDer, x[6], x[5], x[4], x[3], x[2], x[0], y[6], y[5], y[4], y[3], y[2],
           y[0], z[6], z[5], z[4], z[3], z[2], z[0], &dvdx[7], &dvdy[7],
-          &dvdz[7]);
+          &dvdz[7]));
+  hpx::wait_all(futures);
 }
 
 /******************************************/
@@ -901,8 +905,11 @@ static inline void CalcHourglassControlForElems(Domain &domain, Real_t determ[],
   Real_t *y8n = Allocate<Real_t>(numElem8);
   Real_t *z8n = Allocate<Real_t>(numElem8);
 
+  delete fj_exec;
+
   /* start loop over elements */
-  hpx::experimental::for_loop(hpx::execution::par.on(*fj_exec), (0), numElem,
+  auto f = hpx::experimental::for_loop(
+              hpx::execution::par(hpx::execution::task), (0), numElem,
                   [&](Index_t i) {
                     Real_t x1[8], y1[8], z1[8];
                     Real_t pfx[8], pfy[8], pfz[8];
@@ -930,6 +937,8 @@ static inline void CalcHourglassControlForElems(Domain &domain, Real_t determ[],
                       exit(VolumeError);
                     }
                   });
+  f.get();
+  fj_exec = new hpx::execution::experimental::fork_join_executor{};
 
   if (hgcoef > Real_t(0.)) {
     CalcFBHourglassForceForElems(domain, determ, x8n, y8n, z8n, dvdx, dvdy,
