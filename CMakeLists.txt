@@ -51,23 +51,27 @@ set(LULESH_SOURCES
   lulesh-viz.cc
 )
 
-add_hpx_executable(lulesh2.0
+add_hpx_executable(lulesh_hpx_base
     ESSENTIAL
     SOURCES 
-    ${LULESH_SOURCES} lulesh.cc
+    ${LULESH_SOURCES} lulesh_hpx_base.cc
 )
-add_hpx_executable(lulesh2.0_for_loop
+add_hpx_executable(lulesh_hpx_for_loop
     ESSENTIAL
     SOURCES 
-    ${LULESH_SOURCES} lulesh_for_loop.cc
+    ${LULESH_SOURCES} lulesh_hpx_for_loop.cc
 )
-add_hpx_executable(lulesh2.0_for_loop_fork_join
+add_hpx_executable(lulesh_hpx_for_loop_fork_join
     ESSENTIAL
     SOURCES 
-    ${LULESH_SOURCES} lulesh_for_loop_fork_join.cc
+    ${LULESH_SOURCES} lulesh_hpx_for_loop_fork_join.cc
 )
-add_hpx_executable(lulesh2.0_for_loop_fork_join_2
+add_hpx_executable(lulesh_hpx_for_loop_fork_join_seperate
     ESSENTIAL
     SOURCES 
-    ${LULESH_SOURCES} lulesh_for_loop_fork_join_2.cc
+    ${LULESH_SOURCES} lulesh_hpx_for_loop_fork_join_seperate.cc
 )
+
+find_package(OpenMP REQUIRED)
+add_executable(lulesh_omp ${LULESH_SOURCES} lulesh_omp.cc)
+target_link_libraries(lulesh_omp PUBLIC OpenMP::OpenMP_CXX)
