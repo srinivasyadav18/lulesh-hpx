@@ -169,8 +169,6 @@ Additional BSD Notice
 
 #include "lulesh.h"
 
-using hpx::util::counting_iterator;
-
 /* Work Routines */
 
 static inline void TimeIncrement(Domain &domain) {
@@ -275,7 +273,7 @@ static inline void InitStressTermsForElems(Domain &domain, Real_t *sigxx,
   // pull in the stresses appropriate to the hydro integration
   //
 
-  hpx::for_each_n(hpx::execution::par, counting_iterator(0), numElem,
+  hpx::for_each_n(hpx::execution::par, hpx::util::counting_iterator(0), numElem,
                   [&](Index_t i) {
                     sigxx[i] = sigyy[i] = sigzz[i] = -domain.p(i) - domain.q(i);
                   });
@@ -494,7 +492,7 @@ static inline void IntegrateStressForElems(Domain &domain, Real_t *sigxx,
   // loop over all elements
 
   hpx::for_each_n(
-      hpx::execution::par, counting_iterator(0), numElem,
+      hpx::execution::par, hpx::util::counting_iterator(0), numElem,
       [&](Index_t k) {
         const Index_t *const elemToNode = domain.nodelist(k);
         Real_t B[3][8]; // shape function derivatives
@@ -521,7 +519,7 @@ static inline void IntegrateStressForElems(Domain &domain, Real_t *sigxx,
 
   // If threaded, then we need to copy the data out of the temporary
   // arrays used above into the final forces field
-  hpx::for_each_n(hpx::execution::par, counting_iterator(0), numNode,
+  hpx::for_each_n(hpx::execution::par, hpx::util::counting_iterator(0), numNode,
                   [&](Index_t gnode) {
                     Index_t count = domain.nodeElemCount(gnode);
                     Index_t *cornerList = domain.nodeElemCornerList(gnode);
@@ -705,7 +703,7 @@ static inline void CalcFBHourglassForceForElems(Domain &domain, Real_t *determ,
   /*    compute the hourglass modes */
 
   hpx::for_each_n(
-      hpx::execution::par, counting_iterator(0), numElem,
+      hpx::execution::par, hpx::util::counting_iterator(0), numElem,
       [&](Index_t i2) {
         Real_t *fx_local, *fy_local, *fz_local;
         Real_t hgfx[8], hgfy[8], hgfz[8];
@@ -854,7 +852,7 @@ static inline void CalcFBHourglassForceForElems(Domain &domain, Real_t *determ,
       });
 
   // Collect the data from the local arrays into the final force arrays
-  hpx::for_each_n(hpx::execution::par, counting_iterator(0), numNode,
+  hpx::for_each_n(hpx::execution::par, hpx::util::counting_iterator(0), numNode,
                   [&](Index_t gnode) {
                     Index_t count = domain.nodeElemCount(gnode);
                     Index_t *cornerList = domain.nodeElemCornerList(gnode);
@@ -887,7 +885,7 @@ static inline void CalcHourglassControlForElems(Domain &domain, Real_t determ[],
   Real_t *z8n = Allocate<Real_t>(numElem8);
 
   /* start loop over elements */
-  hpx::for_each_n(hpx::execution::par, counting_iterator(0), numElem,
+  hpx::for_each_n(hpx::execution::par, hpx::util::counting_iterator(0), numElem,
                   [&](Index_t i) {
                     Real_t x1[8], y1[8], z1[8];
                     Real_t pfx[8], pfy[8], pfz[8];
@@ -1292,7 +1290,7 @@ void CalcKinematicsForElems(Domain &domain, Real_t deltaTime, Index_t numElem) {
 
   // loop over all elements
   hpx::for_each_n(
-      hpx::execution::par, counting_iterator(0), numElem,
+      hpx::execution::par, hpx::util::counting_iterator(0), numElem,
       [&](Index_t k) {
         Real_t B[3][8]; /** shape function derivatives */
         Real_t D[6];
@@ -1360,7 +1358,7 @@ static inline void CalcLagrangeElements(Domain &domain) {
     CalcKinematicsForElems(domain, deltatime, numElem);
 
     // element loop to do some stuff not included in the elemlib function.
-    hpx::for_each_n(hpx::execution::par, counting_iterator(0), numElem,
+    hpx::for_each_n(hpx::execution::par, hpx::util::counting_iterator(0), numElem,
                     [&domain](Index_t k) {
                       // calc strain rate and apply as constraint (only done in
                       // FB element)
@@ -1389,7 +1387,7 @@ static inline void CalcMonotonicQGradientsForElems(Domain &domain) {
   Index_t numElem = domain.numElem();
 
   hpx::for_each_n(
-      hpx::execution::par, counting_iterator(0), numElem, [&domain](Index_t i) {
+      hpx::execution::par, hpx::util::counting_iterator(0), numElem, [&domain](Index_t i) {
         const Real_t ptiny = Real_t(1.e-36);
         Real_t ax, ay, az;
         Real_t dxv, dyv, dzv;
@@ -1551,7 +1549,7 @@ static inline void CalcMonotonicQRegionForElems(Domain &domain, Int_t r,
   Real_t qqc_monoq = domain.qqc_monoq();
 
   hpx::for_each_n(
-      hpx::execution::par, counting_iterator(0), domain.regElemSize(r),
+      hpx::execution::par, hpx::util::counting_iterator(0), domain.regElemSize(r),
       [&](Index_t i) {
         Index_t ielem = domain.regElemlist(r, i);
         Real_t qlin, qquad;
@@ -1828,7 +1826,7 @@ static inline void CalcPressureForElems(Real_t *p_new, Real_t *bvc,
   hpx::fill(hpx::execution::par, pbvc, pbvc + length, cls);
 
   hpx::for_each_n(
-      hpx::execution::par, counting_iterator(0), length, [&](Index_t i) {
+      hpx::execution::par, hpx::util::counting_iterator(0), length, [&](Index_t i) {
         Real_t newval = bvc[i] * e_old[i];
         if (std::fabs(newval) < p_cut || vnewc[regElemList[i]] >= eosvmax) {
           newval = Real_t(0.0);
@@ -1853,7 +1851,7 @@ CalcEnergyForElems(Real_t *p_new, Real_t *e_new, Real_t *q_new, Real_t *bvc,
   Real_t *pHalfStep = Allocate<Real_t>(length);
 
   hpx::for_each_n(
-      hpx::execution::par, counting_iterator(0), length, [&](Index_t i) {
+      hpx::execution::par, hpx::util::counting_iterator(0), length, [&](Index_t i) {
         e_new[i] = e_old[i] - Real_t(0.5) * delvc[i] * (p_old[i] + q_old[i]) +
                    Real_t(0.5) * work[i];
 
@@ -1866,7 +1864,7 @@ CalcEnergyForElems(Real_t *p_new, Real_t *e_new, Real_t *q_new, Real_t *bvc,
                        p_cut, eosvmax, length, regElemList);
 
   hpx::for_each_n(
-      hpx::execution::par, counting_iterator(0), length, [&](Index_t i) {
+      hpx::execution::par, hpx::util::counting_iterator(0), length, [&](Index_t i) {
         Real_t vhalf = Real_t(1.) / (Real_t(1.) + compHalfStep[i]);
 
         if (delvc[i] > Real_t(0.)) {
@@ -1906,7 +1904,7 @@ CalcEnergyForElems(Real_t *p_new, Real_t *e_new, Real_t *q_new, Real_t *bvc,
                        eosvmax, length, regElemList);
 
   hpx::for_each_n(
-      hpx::execution::par, counting_iterator(0), length, [&](Index_t i) {
+      hpx::execution::par, hpx::util::counting_iterator(0), length, [&](Index_t i) {
         const Real_t sixth = Real_t(1.0) / Real_t(6.0);
         Index_t ielem = regElemList[i];
         Real_t q_tilde;
@@ -1944,7 +1942,7 @@ CalcEnergyForElems(Real_t *p_new, Real_t *e_new, Real_t *q_new, Real_t *bvc,
                        eosvmax, length, regElemList);
 
   hpx::for_each_n(
-      hpx::execution::par, counting_iterator(0), length, [&](Index_t i) {
+      hpx::execution::par, hpx::util::counting_iterator(0), length, [&](Index_t i) {
         Index_t ielem = regElemList[i];
 
         if (delvc[i] <= Real_t(0.)) {
@@ -1978,7 +1976,7 @@ static inline void CalcSoundSpeedForElems(Domain &domain, Real_t *vnewc,
                                           Real_t *bvc, Real_t ss4o3,
                                           Index_t len, Index_t *regElemList) {
   hpx::for_each_n(
-      hpx::execution::par, counting_iterator(0), len, [&](Index_t i) {
+      hpx::execution::par, hpx::util::counting_iterator(0), len, [&](Index_t i) {
         Index_t ielem = regElemList[i];
         Real_t ssTmp = (pbvc[i] * enewc[i] +
                         vnewc[ielem] * vnewc[ielem] * bvc[i] * pnewc[i]) /
@@ -2029,7 +2027,7 @@ static inline void EvalEOSForElems(Domain &domain, Real_t *vnewc,
   // loop to add load imbalance based on region number
   for (Int_t j = 0; j < rep; j++) {
     /* compress data, minimal set */
-    hpx::for_each_n(hpx::execution::par, counting_iterator(0), numElemReg,
+    hpx::for_each_n(hpx::execution::par, hpx::util::counting_iterator(0), numElemReg,
                     [&](Index_t i) {
                       Index_t ielem = regElemList[i];
                       e_old[i] = domain.e(ielem);
@@ -2040,7 +2038,7 @@ static inline void EvalEOSForElems(Domain &domain, Real_t *vnewc,
                       ql_old[i] = domain.ql(ielem);
                     });
 
-    hpx::for_each_n(hpx::execution::par, counting_iterator(0), numElemReg,
+    hpx::for_each_n(hpx::execution::par, hpx::util::counting_iterator(0), numElemReg,
                     [&](Index_t i) {
                       Index_t ielem = regElemList[i];
                       Real_t vchalf;
@@ -2051,7 +2049,7 @@ static inline void EvalEOSForElems(Domain &domain, Real_t *vnewc,
 
     /* Check for v > eosvmax or v < eosvmin */
     if (eosvmin != Real_t(0.)) {
-      hpx::for_each_n(hpx::execution::par, counting_iterator(0), numElemReg,
+      hpx::for_each_n(hpx::execution::par, hpx::util::counting_iterator(0), numElemReg,
                       [&](Index_t i) {
                         Index_t ielem = regElemList[i];
                         if (vnewc[ielem] <=
@@ -2061,7 +2059,7 @@ static inline void EvalEOSForElems(Domain &domain, Real_t *vnewc,
                       });
     }
     if (eosvmax != Real_t(0.)) {
-      hpx::for_each_n(hpx::execution::par, counting_iterator(0), numElemReg,
+      hpx::for_each_n(hpx::execution::par, hpx::util::counting_iterator(0), numElemReg,
                       [&](Index_t i) {
                         Index_t ielem = regElemList[i];
                         if (vnewc[ielem] >=
@@ -2079,7 +2077,7 @@ static inline void EvalEOSForElems(Domain &domain, Real_t *vnewc,
                        numElemReg, regElemList);
   }
 
-  hpx::for_each_n(hpx::execution::par, counting_iterator(0), numElemReg,
+  hpx::for_each_n(hpx::execution::par, hpx::util::counting_iterator(0), numElemReg,
                   [&](Index_t i) {
                     Index_t ielem = regElemList[i];
                     domain.p(ielem) = p_new[i];
@@ -2202,7 +2200,7 @@ static inline void CalcCourantConstraintForElems(Domain &domain, Index_t length,
                                                  Real_t &dtcourant) {
   Real_t qqc2 = Real_t(64.0) * qqc * qqc;
   dtcourant = hpx::transform_reduce(
-      hpx::execution::par, counting_iterator(0), counting_iterator(length),
+      hpx::execution::par, hpx::util::counting_iterator(0), hpx::util::counting_iterator(length),
       dtcourant, [](Real_t a, Real_t b) { return a < b ? a : b; },
       [&](Index_t i) {
         Index_t indx = regElemlist[i];
@@ -2228,7 +2226,7 @@ static inline void CalcHydroConstraintForElems(Domain &domain, Index_t length,
                                                Real_t dvovmax,
                                                Real_t &dthydro) {
   dthydro = hpx::transform_reduce(
-      hpx::execution::par, counting_iterator(0), counting_iterator(length),
+      hpx::execution::par, hpx::util::counting_iterator(0), hpx::util::counting_iterator(length),
       dthydro, [](Real_t a, Real_t b) { return a < b ? a : b; },
       [&](Index_t i) {
         Index_t indx = regElemlist[i];

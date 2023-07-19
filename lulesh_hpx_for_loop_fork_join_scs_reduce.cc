@@ -183,8 +183,6 @@ the start of HPX runtime significantly reduces thread overheads.
 
 #include "lulesh.h"
 
-using hpx::util::counting_iterator;
-
 hpx::execution::experimental::fork_join_executor* fj_exec;
 /* Work Routines */
 

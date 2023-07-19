@@ -183,7 +183,6 @@ the start of HPX runtime significantly reduces thread overheads.
 
 #include "lulesh.h"
 
-using hpx::util::counting_iterator;
 
 hpx::execution::experimental::fork_join_executor* fj_exec;
 /* Work Routines */
@@ -2217,7 +2216,7 @@ static inline void CalcCourantConstraintForElems(Domain &domain, Index_t length,
                                                  Real_t &dtcourant) {
   Real_t qqc2 = Real_t(64.0) * qqc * qqc;
   dtcourant = hpx::transform_reduce(
-      hpx::execution::par, counting_iterator(0), counting_iterator(length),
+      hpx::execution::par, hpx::util::counting_iterator(0), hpx::util::counting_iterator(length),
       dtcourant, [](Real_t a, Real_t b) { return a < b ? a : b; },
       [&](Index_t i) {
         Index_t indx = regElemlist[i];
@@ -2243,7 +2242,7 @@ static inline void CalcHydroConstraintForElems(Domain &domain, Index_t length,
                                                Real_t dvovmax,
                                                Real_t &dthydro) {
   dthydro = hpx::transform_reduce(
-      hpx::execution::par, counting_iterator(0), counting_iterator(length),
+      hpx::execution::par, hpx::util::counting_iterator(0), hpx::util::counting_iterator(length),
       dthydro, [](Real_t a, Real_t b) { return a < b ? a : b; },
       [&](Index_t i) {
         Index_t indx = regElemlist[i];
