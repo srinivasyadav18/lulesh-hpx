@@ -71,6 +71,11 @@ add_hpx_executable(lulesh_hpx_for_loop_fork_join_seperate
     SOURCES 
     ${LULESH_SOURCES} lulesh_hpx_for_loop_fork_join_seperate.cc
 )
+add_hpx_executable(lulesh_hpx_for_loop_fork_join_scs_reduce
+    ESSENTIAL
+    SOURCES 
+    ${LULESH_SOURCES} lulesh_hpx_for_loop_fork_join_scs_reduce.cc
+)
 
 find_package(OpenMP REQUIRED)
 add_executable(lulesh_omp ${LULESH_SOURCES} lulesh_omp.cc)
