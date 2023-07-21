@@ -162,6 +162,9 @@ the start of HPX runtime significantly reduces thread overheads.
 #include <hpx/algorithm.hpp>
 #include <hpx/execution.hpp>
 
+#include <hpx/modules/compute.hpp>
+#include <hpx/modules/compute_local.hpp>
+
 #include <climits>
 #include <ctype.h>
 #include <iostream>
@@ -181,9 +184,9 @@ the start of HPX runtime significantly reduces thread overheads.
 #include <omp.h>
 #endif
 
-#include "lulesh.h"
+#include "lulesh-hpx.h"
 
-hpx::execution::experimental::fork_join_executor* fj_exec;
+hpx::execution::experimental::block_fork_join_executor* fj_exec;
 /* Work Routines */
 
 static inline void TimeIncrement(Domain &domain) {
@@ -2283,7 +2286,7 @@ static inline void LagrangeLeapFrog(Domain &domain) {
 #ifdef SEDOV_SYNC_POS_VEL_LATE
   Domain_member fieldData[6];
 #endif
-  fj_exec = new hpx::execution::experimental::fork_join_executor{};
+  fj_exec = new hpx::execution::experimental::block_fork_join_executor{};
 
   /* calculate nodal forces, accelerations, velocities, positions, with
    * applied boundary conditions and slide surface considerations */
